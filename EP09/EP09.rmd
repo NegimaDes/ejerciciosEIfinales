@@ -1,0 +1,75 @@
+---
+title: "EP06"
+author: "Equipo 6"
+date: "2023-11-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggpubr)
+```
+
+Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:
+
+Biacromial.diameter	    : Diámetro biacromial (a la altura de los hombros)	cm
+Biiliac.diameter	    : Diámetro biiliaco (a la altura de la pelvis)	cm
+Bitrochanteric.diameter	: Diámetro bitrocantéreo (a la altura de las caderas)	cm
+Chest.depth         	: Profundidad del pecho (entre la espina y el esternón a la altura de los pezones)	cm
+Chest.diameter	        : Diámetro del pecho (a la altura de los pezones)	cm
+Elbows.diameter	        : Suma de los diámetros de los codos	cm
+Wrists.diameter	        : Suma de los diámetros de las muñecas	cm
+Knees.diameter	        : Suma de los diámetros de las rodillas	cm
+Ankles.diameter	        : Suma de los diámetros de los tobillos	cm
+Shoulder.Girth	        : Grosor de los hombros sobre los músculos deltoides	cm
+Chest.Girth         	: Grosor del pecho, sobre tejido mamario en mujeres y a la altura de los pezones en varones	cm
+Waist.Girth	            : Grosor a la altura de la cintura	cm
+Navel.Girth	            : Grosor a la altura del ombligo	cm
+Hip.Girth           	: Grosor a la altura de las caderas	cm
+Thigh.Girth         	: Grosor promedio de ambos muslos bajo el pliegue del glúteo	cm
+Bicep.Girth	            : Grosor promedio de ambos bíceps, brazos flectados	cm
+Forearm.Girth	        : Grosor promedio de ambos antebrazos, brazos extendidos palmas hacia arriba	cm
+Knee.Girth	            : Grosor promedio de ambas rodillas, posición levemente flectada, medición arriba de la rótula	cm
+Calf.Maximum.Girth	    : Grosor promedio de la parte más ancha de ambas pantorrillas	cm
+Ankle.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambos tobillos	cm
+Wrist.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambas muñecas	cm
+Age	                    : Edad	Años
+Weight	                : Peso	Kg
+Height              	  : Estatura	cm
+Gender	                : Género	1: hombre
+                                    0: mujer
+
+```{r}
+datos <- read.csv2("EP09 Datos.csv")
+head(datos)
+
+mujeres <- filter(datos, Gender == 0)
+
+set.seed(1624)
+muestra <- mujeres[sample(nrow(mujeres), 50), ]
+
+predictores <- sample(24, 8)
+predictores
+
+muestraP <- muestra[predictores]
+muestraP
+```
+
+Se selecciona la variable Navel.Girth por ser la medida del grosor a la altura del ombligo, ayudando a medir el tamaño de la posible grasa abdominal.
+
+```{r}
+
+modelo <- lm(Weight ~ Navel.Girth, data = muestra)
+
+datos[]
+p <- ggscatter(datos, x = "Navel.Girth", y = " Weight", color = "blue", fill = "blue")
+
+p
+
+summary(modelo)
+
+```
