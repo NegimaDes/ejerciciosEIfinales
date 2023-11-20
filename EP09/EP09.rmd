@@ -65,11 +65,22 @@ Se selecciona la variable Navel.Girth por ser la medida del grosor a la altura d
 
 modelo <- lm(Weight ~ Navel.Girth, data = muestra)
 
-datos[]
-p <- ggscatter(datos, x = "Navel.Girth", y = " Weight", color = "blue", fill = "blue")
+p <- ggscatter(muestra, x = "Navel.Girth", y = "Weight", color = "blue", fill = "blue")
+p <- p + geom_smooth(method = lm, se = FALSE, colour = "red")
 
 p
 
 summary(modelo)
+plot(modelo)
+```
+          JUSTIFICAR CONDICIONES
+          
+
+```{r}
+completo <- lm(Weight ~ Calf.Maximum.Girth + Age + Chest.diameter + Elbows.diameter + Shoulder.Girth + Chest.Girth + Bitrochanteric.diameter + Wrist.Minimum.Girth, data = muestra)
+summary(completo)
+
+add1(modelo, scope = completo)
 
 ```
+
