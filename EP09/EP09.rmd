@@ -56,7 +56,7 @@ predictores <- sample(24, 8)
 predictores
 
 muestraP <- muestra[predictores]
-muestraP
+head(muestraP)
 ```
 
 Se selecciona la variable Navel.Girth por ser la medida del grosor a la altura del ombligo, ayudando a medir el tamaño de la posible grasa abdominal.
@@ -73,14 +73,28 @@ p
 summary(modelo)
 plot(modelo)
 ```
+
+
           JUSTIFICAR CONDICIONES
           
 
 ```{r}
-completo <- lm(Weight ~ Calf.Maximum.Girth + Age + Chest.diameter + Elbows.diameter + Shoulder.Girth + Chest.Girth + Bitrochanteric.diameter + Wrist.Minimum.Girth, data = muestra)
+completo <- lm(Weight ~ Navel.Girth + Calf.Maximum.Girth + Age + Chest.diameter + Elbows.diameter + Shoulder.Girth + Chest.Girth + Bitrochanteric.diameter + Wrist.Minimum.Girth, data = muestra)
 summary(completo)
 
 add1(modelo, scope = completo)
 
+modMejorado <- update(modelo, . ~ . + Calf.Maximum.Girth)
+modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth)
+add1(modMejorado, scope = completo)
+modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth + Shoulder.Girth)
+add1(modMejorado, scope = completo)
+
+
+shapiro.test(modMejorado$residuals)
+summary(modMejorado)
+plot(modMejorado)
 ```
+
+
 
