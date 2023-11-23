@@ -62,7 +62,17 @@ head(muestraP)
 Se selecciona la variable Navel.Girth por ser la medida del grosor a la altura del ombligo, ayudando a medir el tamaño de la posible grasa abdominal.
 
 ```{r}
+# Evaluación de variables
+nulo <- lm(Weight ~ 1, data = muestra)
+summary(nulo)
 
+completo <- lm(Weight ~ ., data = muestra)
+summary(completo)
+
+add1(nulo, scope = completo)
+
+
+#MLS
 modelo <- lm(Weight ~ Navel.Girth, data = muestra)
 
 p <- ggscatter(muestra, x = "Navel.Girth", y = "Weight", color = "blue", fill = "blue")
@@ -83,17 +93,23 @@ completo <- lm(Weight ~ Navel.Girth + Calf.Maximum.Girth + Age + Chest.diameter 
 summary(completo)
 
 add1(modelo, scope = completo)
-
 modMejorado <- update(modelo, . ~ . + Calf.Maximum.Girth)
-modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth)
-add1(modMejorado, scope = completo)
-modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth + Shoulder.Girth)
-add1(modMejorado, scope = completo)
-
-
-shapiro.test(modMejorado$residuals)
-summary(modMejorado)
 plot(modMejorado)
+# Muere la normalidad
+shapiro.test(modMejorado$residuals)
+
+add1(modMejorado, scope = completo)
+modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth)
+plot(modMejorado)
+shapiro.test(modMejorado$residuals)
+
+add1(modMejorado, scope = completo)
+modMejorado <- update(modelo, . ~ . + Shoulder.Girth)
+plot(modMejorado)
+shapiro.test(modMejorado$residuals)
+
+add1(modMejorado, scope = completo)
+
 ```
 
 
