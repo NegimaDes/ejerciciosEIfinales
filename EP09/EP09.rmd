@@ -12,9 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(dplyr)
 library(ggpubr)
+library(caret)
 ```
-
+**Actividad**
 Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:
+
+datos:
 
 1 Biacromial.diameter	    : Diámetro biacromial (a la altura de los hombros)	cm
 2 Biiliac.diameter	      : Diámetro biiliaco (a la altura de la pelvis)	cm
@@ -25,23 +28,22 @@ Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et
 7 Wrists.diameter	        : Suma de los diámetros de las muñecas	cm
 8 Knees.diameter	        : Suma de los diámetros de las rodillas	cm
 9 Ankles.diameter	        : Suma de los diámetros de los tobillos	cm
-10Shoulder.Girth	        : Grosor de los hombros sobre los músculos deltoides	cm
-11Chest.Girth           	: Grosor del pecho, sobre tejido mamario en mujeres y a la altura de los pezones en varones	cm
-12Waist.Girth	            : Grosor a la altura de la cintura	cm
-13Navel.Girth	            : Grosor a la altura del ombligo	cm
-14Hip.Girth             	: Grosor a la altura de las caderas	cm
-15Thigh.Girth           	: Grosor promedio de ambos muslos bajo el pliegue del glúteo	cm
-16Bicep.Girth	            : Grosor promedio de ambos bíceps, brazos flectados	cm
-17Forearm.Girth	          : Grosor promedio de ambos antebrazos, brazos extendidos palmas hacia arriba	cm
-18Knee.Girth	            : Grosor promedio de ambas rodillas, posición levemente flectada, medición arriba de la rótula	cm
-19Calf.Maximum.Girth	    : Grosor promedio de la parte más ancha de ambas pantorrillas	cm
-20Ankle.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambos tobillos	cm
-21Wrist.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambas muñecas	cm
-22Age	                    : Edad	Años
-23Weight	                : Peso	Kg
-24Height              	  : Estatura	cm
-25Gender	                : Género	1: hombre
-                                    0: mujer
+10 Shoulder.Girth	        : Grosor de los hombros sobre los músculos deltoides	cm
+11 Chest.Girth           	: Grosor del pecho, sobre tejido mamario en mujeres y a la altura de los pezones en varones	cm
+12 Waist.Girth	            : Grosor a la altura de la cintura	cm
+13 Navel.Girth	            : Grosor a la altura del ombligo	cm
+14 Hip.Girth             	: Grosor a la altura de las caderas	cm
+15 Thigh.Girth           	: Grosor promedio de ambos muslos bajo el pliegue del glúteo	cm
+16 Bicep.Girth	            : Grosor promedio de ambos bíceps, brazos flectados	cm
+17 Forearm.Girth	            : Grosor promedio de ambos antebrazos, brazos extendidos palmas hacia arriba	cm
+18 Knee.Girth	            : Grosor promedio de ambas rodillas, posición levemente flectada, medición arriba de la rótula	cm
+19 Calf.Maximum.Girth	    : Grosor promedio de la parte más ancha de ambas pantorrillas	cm
+20 Ankle.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambos tobillos	cm
+21 Wrist.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambas muñecas	cm
+22 Age	                    : Edad	Años
+23 Weight	                : Peso	Kg
+24 Height              	    : Estatura	cm
+25 Gender	                : Género	1: hombre ; 0: mujer
 
 ```{r}
 datos <- read.csv2("EP09 Datos.csv")
@@ -55,62 +57,128 @@ muestra <- mujeres[sample(nrow(mujeres), 50), ]
 predictores <- sample(24, 8)
 predictores
 
+# Se analiza la variable con la correlación más alta
+correlacion <- cor(muestra)
+max(correlacion[23,1:22])
+
 muestraP <- muestra[predictores]
+muestraP$Weight <- muestra$Weight
+muestraP$Hip.Girth <- muestra$Hip.Girth
 head(muestraP)
+
+
 ```
 
-Se selecciona la variable Navel.Girth por ser la medida del grosor a la altura del ombligo, ayudando a medir el tamaño de la posible grasa abdominal.
+Se selecciona la variable Hip.Girth por tener la mayor correlación con respecto a la variable Weight.
 
 ```{r}
-# Evaluación de variables
-nulo <- lm(Weight ~ 1, data = muestra)
-summary(nulo)
-
-completo <- lm(Weight ~ ., data = muestra)
-summary(completo)
-
-add1(nulo, scope = completo)
-
-
 #MLS
-modelo <- lm(Weight ~ Navel.Girth, data = muestra)
+modelo <- lm(Weight ~ Hip.Girth, data = muestraP)
 
-p <- ggscatter(muestra, x = "Navel.Girth", y = "Weight", color = "blue", fill = "blue")
+p <- ggscatter(muestra, x = "Hip.Girth", y = "Weight", color = "blue", fill = "blue")
 p <- p + geom_smooth(method = lm, se = FALSE, colour = "red")
 
 p
 
 summary(modelo)
 plot(modelo)
+shapiro.test(modelo$residuals)
 ```
 
-
-          JUSTIFICAR CONDICIONES
-          
-
+JUSTIFICAR CONDICIONES 
+        
 ```{r}
-completo <- lm(Weight ~ Navel.Girth + Calf.Maximum.Girth + Age + Chest.diameter + Elbows.diameter + Shoulder.Girth + Chest.Girth + Bitrochanteric.diameter + Wrist.Minimum.Girth, data = muestra)
+set.seed(1624)
+# Creacion de datos de entrenamiento y de prueba
+n <- nrow(muestraP)
+n_entrenamiento <- floor(0.7 * n)
+muestrasEntrenamiento <- sample.int(n = n,
+                                    size = n_entrenamiento,
+                                    replace = FALSE)
+
+entrenamiento <- muestraP[muestrasEntrenamiento, ]
+prueba <- muestraP[-muestrasEntrenamiento, ]
+
+# Modelo nulo a evaluar
+nulo <- lm(Weight ~ 1, data = entrenamiento)
+summary(nulo)
+
+#Modelo completo para evaluar adicion de datos
+completo <- lm(Weight ~ ., data = entrenamiento)
 summary(completo)
 
-add1(modelo, scope = completo)
-modMejorado <- update(modelo, . ~ . + Calf.Maximum.Girth)
-plot(modMejorado)
-# Muere la normalidad
-shapiro.test(modMejorado$residuals)
+modMejorado <- update(nulo, . ~ . + Hip.Girth)
 
 add1(modMejorado, scope = completo)
-modMejorado <- update(modelo, . ~ . + Wrist.Minimum.Girth)
-plot(modMejorado)
-shapiro.test(modMejorado$residuals)
 
-add1(modMejorado, scope = completo)
-modMejorado <- update(modelo, . ~ . + Shoulder.Girth)
+summary(modMejorado)
+
+modMejorado <- update(modMejorado, . ~ . + Wrist.Minimum.Girth)
 plot(modMejorado)
 shapiro.test(modMejorado$residuals)
 
+
 add1(modMejorado, scope = completo)
+
+modMejorado <- update(modMejorado, . ~ . + Chest.Girth)
+plot(modMejorado)
+shapiro.test(modMejorado$residuals)
 
 ```
 
 
+
+```{r}
+# Crear conjuntos de entrenamiento y prueba .
+set.seed(1624)
+n <- nrow(muestraP)
+n_entrenamiento <- floor(0.7*n)
+muestra <- sample.int(n = n, size = n_entrenamiento, replace = FALSE)
+entrenamiento <- datos [muestra, ]
+prueba <- datos [-muestra, ]
+
+modelo <- lm(Weight ~ Hip.Girth + Wrist.Minimum.Girth + Chest.Girth, data = entrenamiento)
+summary(modelo)
+
+mse_entrenamiento <- mean(modelo$residuals**2)
+cat ("MSE para el conjunto de entrenamiento :", mse_entrenamiento, "\n")
+
+predicciones <- predict(modelo, prueba)
+
+error <- prueba[["Weight"]] - predicciones
+mse_prueba <- mean(error**2)
+cat(" MSE para el conjunto de prueba :", mse_prueba)
+```
+
+```{r}
+# Crear conjuntos de entrenamiento y prueba .
+set.seed(1624)
+n <- nrow(datos)
+n_entrenamiento <- floor(0.7*n)
+muestra <- sample.int ( n = n , size = n_entrenamiento , replace = FALSE )
+entrenamiento <- datos [muestra,]
+prueba <- datos [-muestra,]
+
+# Ajustar modelo usando validaci ón cruzada de 5 pliegues .
+modelo <- train (Weight ~ Hip.Girth + Wrist.Minimum.Girth + Chest.Girth, data = entrenamiento , method = "lm",
+trControl = trainControl ( method = "cv", number = 5) )
+
+summary(modelo)
+
+# Hacer predicciones para el conjunto de entrenamiento .
+predicciones_entrenamiento <- predict(modelo,entrenamiento)
+
+# Calcular error cuadrado promedio para el conjunto de prueba .
+error_entrenamiento <- entrenamiento[["Weight"]] - predicciones_entrenamiento
+mse_entrenamiento <- mean(error_entrenamiento**2)
+cat ("MSE para el conjunto de entrenamiento :", mse_entrenamiento, "\n")
+
+# Hacer predicciones para el conjunto de prueba .
+predicciones_prueba <- predict(modelo, prueba)
+
+# Calcular error cuadrado promedio para el conjunto de prueba .
+error_prueba <-prueba [["Weight"]] - predicciones_prueba
+mse_prueba <- mean (error_prueba**2)
+cat("MSE para el conjunto de prueba :", mse_prueba )
+```
 
