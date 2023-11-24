@@ -1,0 +1,54 @@
+---
+title: "EP10"
+author: "Equipo "
+date: "2023-11-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+```
+
+
+```{r}
+datos <- read.csv2("EP09 Datos.csv")
+
+datos$IMC <- NULL
+datos[["IMC"]] <- (datos$Weight / (datos$Height/100)^2)
+
+datos$EN <- NULL
+datos[["EN"]] <- ifelse(datos$IMC >= 25, "sobrepeso", "no sobrepeso")
+
+hombres <- filter(datos, Gender == 1)
+con <- filter(hombres, EN == "sobrepeso")
+sin <- filter(hombres, EN == "no sobrepeso")
+
+set.seed(2043)
+muestraA <- con[sample(nrow(con), 45), ]
+muestraB <- sin[sample(nrow(sin), 45), ]
+muestra <- rbind(muestraA, muestraB)
+
+conM <- filter(muestra, EN == "sobrepeso")
+sinM <- filter(muestra, EN == "no sobrepeso")
+
+entrenamientoA <- conM[sample(nrow(conM), 30), ]
+pruebaA <- conM[!rownames(conM) %in% rownames(entrenamientoA), ]
+entrenamientoB <- sinM[sample(nrow(sinM), 30), ]
+pruebaB <- sinM[!rownames(sinM) %in% rownames(entrenamientoB), ]
+
+entrenamiento <- rbind(entrenamientoA, entrenamientoB)
+
+prueba <- rbind(pruebaA, pruebaB)
+
+predictores <- c(19, 22,5,6,19,11,3,21)
+
+# Se selecciona Navel.Girth por las mismas razones anteriores
+
+
+```
+
+
