@@ -8,16 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-```{r}
-library(dplyr)
-library(ggpubr)
-library(caret)
-```
-**Actividad**
 Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:
-
-datos:
 
 1 Biacromial.diameter	    : Diámetro biacromial (a la altura de los hombros)	cm
 2 Biiliac.diameter	      : Diámetro biiliaco (a la altura de la pelvis)	cm
@@ -46,6 +37,13 @@ datos:
 25 Gender	                : Género	1: hombre ; 0: mujer
 
 ```{r}
+library(dplyr)
+library(ggpubr)
+library(caret)
+library(lmtest)
+library(car)
+
+# Lectura y manipulación de datos
 datos <- read.csv2("EP09 Datos.csv")
 head(datos)
 
@@ -56,22 +54,26 @@ muestra <- mujeres[sample(nrow(mujeres), 50), ]
 
 predictores <- sample(24, 8)
 predictores
+```
 
-# Se analiza la variable con la correlación más alta
+Se analiza la correlación respecto a la variable a analizar (Weight)
+
+```{r}
 correlacion <- cor(muestra)
-max(correlacion[23,1:22])
 
+max_cor <- max(correlacion[23, -23])
+
+indice_max_cor <- which.max(correlacion[23, -23])
+indice_max_cor
+```
+Se selecciona la variable Hip.Girth por tener la mayor correlación con respecto a la variable Weight.
+
+```{r}
 muestraP <- muestra[predictores]
 muestraP$Weight <- muestra$Weight
 muestraP$Hip.Girth <- muestra$Hip.Girth
 head(muestraP)
 
-
-```
-
-Se selecciona la variable Hip.Girth por tener la mayor correlación con respecto a la variable Weight.
-
-```{r}
 #MLS
 modelo <- lm(Weight ~ Hip.Girth, data = muestraP)
 
@@ -84,9 +86,35 @@ summary(modelo)
 plot(modelo)
 shapiro.test(modelo$residuals)
 ```
+# Análisis de condiciones para RLS
 
-JUSTIFICAR CONDICIONES 
-        
+```{r}
+# Se analiza la relación lineal
+p <- ggscatter(muestraP, x = "Hip.Girth", y = "Weight", color = "blue", fill = "blue") +
+  geom_smooth(method = lm, se = FALSE, colour = "red")
+print(p)
+
+# Se analiza la normalidad de los residuos
+qqPlot(modelo, main="Q-Q Plot de los residuos del modelo")
+shapiro_result <- shapiro.test(modelo$residuals)
+print(shapiro_result)
+
+plot(modelo, which = 1)
+
+# Se analiza la homocedasticidad
+bptest_result <- bptest(modelo)
+print(bptest_result)
+```
+Análisis de condiciones:
+
+1. Los datos presentan aproximadamente una relación lineal.
+2. La distribución de los residuos es cercana a la normal (p > 0.05).
+3. La variabilidad de los puntos en torno a la línea de mínimos cuadrados es aproximadamente
+constante.
+4. Las observaciones son independientes entre sí.
+
+Por lo tanto las condiciones para el modelo de regresión lineal se cumplen.
+
 ```{r}
 set.seed(1624)
 # Creacion de datos de entrenamiento y de prueba
@@ -125,8 +153,6 @@ plot(modMejorado)
 shapiro.test(modMejorado$residuals)
 
 ```
-
-
 
 ```{r}
 # Crear conjuntos de entrenamiento y prueba .
