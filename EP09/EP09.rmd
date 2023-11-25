@@ -8,33 +8,51 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+### Contexto.
+
 Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et al., 2003). El estudio incluyó nueve mediciones del esqueleto (ocho diámetros y una profundidad de hueso a hueso) y doce mediciones de grosor (circunferencias) que incluyen el tejido. La siguiente tabla detalla las variables registradas en este estudio:
 
-1 Biacromial.diameter	    : Diámetro biacromial (a la altura de los hombros)	cm
-2 Biiliac.diameter	      : Diámetro biiliaco (a la altura de la pelvis)	cm
-3 Bitrochanteric.diameter	: Diámetro bitrocantéreo (a la altura de las caderas)	cm
-4 Chest.depth           	: Profundidad del pecho (entre la espina y el esternón a la altura de los pezones)	cm
-5 Chest.diameter	        : Diámetro del pecho (a la altura de los pezones)	cm
-6 Elbows.diameter	        : Suma de los diámetros de los codos	cm
-7 Wrists.diameter	        : Suma de los diámetros de las muñecas	cm
-8 Knees.diameter	        : Suma de los diámetros de las rodillas	cm
-9 Ankles.diameter	        : Suma de los diámetros de los tobillos	cm
-10 Shoulder.Girth	        : Grosor de los hombros sobre los músculos deltoides	cm
-11 Chest.Girth           	: Grosor del pecho, sobre tejido mamario en mujeres y a la altura de los pezones en varones	cm
-12 Waist.Girth	            : Grosor a la altura de la cintura	cm
-13 Navel.Girth	            : Grosor a la altura del ombligo	cm
-14 Hip.Girth             	: Grosor a la altura de las caderas	cm
-15 Thigh.Girth           	: Grosor promedio de ambos muslos bajo el pliegue del glúteo	cm
-16 Bicep.Girth	            : Grosor promedio de ambos bíceps, brazos flectados	cm
-17 Forearm.Girth	            : Grosor promedio de ambos antebrazos, brazos extendidos palmas hacia arriba	cm
-18 Knee.Girth	            : Grosor promedio de ambas rodillas, posición levemente flectada, medición arriba de la rótula	cm
-19 Calf.Maximum.Girth	    : Grosor promedio de la parte más ancha de ambas pantorrillas	cm
-20 Ankle.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambos tobillos	cm
-21 Wrist.Minimum.Girth	    : Grosor promedio de la parte más delgada de ambas muñecas	cm
-22 Age	                    : Edad	Años
-23 Weight	                : Peso	Kg
-24 Height              	    : Estatura	cm
-25 Gender	                : Género	1: hombre ; 0: mujer
+1. Biacromial.diameter	    : Diámetro biacromial (a la altura de los hombros)	cm
+2. Biiliac.diameter	      : Diámetro biiliaco (a la altura de la pelvis)	cm
+3. Bitrochanteric.diameter	: Diámetro bitrocantéreo (a la altura de las caderas)	cm
+4. Chest.depth           	: Profundidad del pecho (entre la espina y el esternón a la altura de los pezones)	cm
+5. Chest.diameter	        : Diámetro del pecho (a la altura de los pezones)	cm
+6. Elbows.diameter	        : Suma de los diámetros de los codos	cm
+7. Wrists.diameter	        : Suma de los diámetros de las muñecas	cm
+8. Knees.diameter	        : Suma de los diámetros de las rodillas	cm
+9. Ankles.diameter	        : Suma de los diámetros de los tobillos	cm
+10. Shoulder.Girth	        : Grosor de los hombros sobre los músculos deltoides	cm
+11. Chest.Girth           	: Grosor del pecho, sobre tejido mamario en mujeres y a la altura de los pezones en varones	cm
+12. Waist.Girth	          : Grosor a la altura de la cintura	cm
+13. Navel.Girth	          : Grosor a la altura del ombligo	cm
+14. Hip.Girth             	: Grosor a la altura de las caderas	cm
+15. Thigh.Girth           	: Grosor promedio de ambos muslos bajo el pliegue del glúteo	cm
+16. Bicep.Girth	          : Grosor promedio de ambos bíceps, brazos flectados	cm
+17. Forearm.Girth	        : Grosor promedio de ambos antebrazos, brazos extendidos palmas hacia arriba	cm
+18. Knee.Girth	            : Grosor promedio de ambas rodillas, posición levemente flectada, medición arriba de la rótula	cm
+19. Calf.Maximum.Girth	    : Grosor promedio de la parte más ancha de ambas pantorrillas	cm
+20. Ankle.Minimum.Girth	  : Grosor promedio de la parte más delgada de ambos tobillos	cm
+21. Wrist.Minimum.Girth	  : Grosor promedio de la parte más delgada de ambas muñecas	cm
+22. Age	                  : Edad	Años
+23. Weight	                : Peso	Kg
+24. Height              	  : Estatura	cm
+25. Gender	                : Género	1: hombre ; 0: mujer
+
+
+### Preguntas.
+
+1. Definir la semilla a utilizar, que corresponde a los últimos cuatro dígitos del RUN (sin considerar el dígito verificador) del integrante de menor edad del equipo.
+2. Seleccionar una muestra de 50 mujeres (si la semilla es un número par) o 50 hombres (si la semilla es impar).
+3. Seleccionar de forma aleatoria ocho posibles variables predictoras.
+4. Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la variable Peso, justificando bien esta selección.
+5. Usando el entorno R, construir un modelo de regresión lineal simple con el predictor seleccionado en el paso anterior.
+6. Usando herramientas para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar en el punto 3, para agregar al modelo de regresión lineal simple obtenido en el paso 5.
+7. Evaluar los modelos y “arreglarlos” en caso de que tengan algún problema con las condiciones que deben cumplir.
+8. Evaluar el poder predictivo del modelo en datos no utilizados para construirlo (o utilizando validación cruzada).
+
+
+### Lectura, manipulación y selección de datos
 
 ```{r}
 library(dplyr)
@@ -43,20 +61,21 @@ library(caret)
 library(lmtest)
 library(car)
 
-# Lectura y manipulación de datos
 datos <- read.csv2("EP09 Datos.csv")
 head(datos)
 
 mujeres <- filter(datos, Gender == 0)
 
-set.seed(1624)
-muestra <- mujeres[sample(nrow(mujeres), 50), ]
+set.seed(1624) #Se Define la semilla 
+muestra <- mujeres[sample(nrow(mujeres), 50), ]  #Se selecciona una miestra de 50 mujeres
 
-predictores <- sample(24, 8)
+predictores <- sample(24, 8) #Se seleciona de forma aleatoria ocho posibles variables predictoras.
 predictores
 ```
 
-Se analiza la correlación respecto a la variable a analizar (Weight)
+
+Se realiza un análisis de correlación con respecto a la variable de interés, que en este caso es "Weight" (Peso).El análisis de correlación es una etapa clave en la identificación de variables potencialmente relevantes para el modelo, ya que permite evaluar la relación inicial entre las variables y la variable objetivo, facilitando la toma de decisiones en la selección de predictores para la construcción del modelo de regresión.
+
 
 ```{r}
 correlacion <- cor(muestra)
@@ -66,7 +85,10 @@ max_cor <- max(correlacion[23, -23])
 indice_max_cor <- which.max(correlacion[23, -23])
 indice_max_cor
 ```
-Se selecciona la variable Hip.Girth por tener la mayor correlación con respecto a la variable Weight.
+
+La elección de la variable "Hip.Girth" se fundamenta en el análisis de correlación previo, donde se evaluaron las relaciones entre las variables predictoras y la variable de respuesta, que es "Weight" (Peso). La variable "Hip.Girth" emergió como la que presenta la mayor correlación positiva con el peso de los individuos.Seleccionar la variable con la correlación más alta tiene implicaciones significativas en la construcción del modelo de regresión. La alta correlación sugiere que existe una relación lineal fuerte entre el grosor de cadera y el peso. Al incorporar esta variable al modelo, se busca capturar y aprovechar esta relación para mejorar la capacidad predictiva del modelo.
+
+Dado la selección de la variable "Hip.Girth" se construye un modelo de regresión lineal simple. 
 
 ```{r}
 muestraP <- muestra[predictores]
@@ -86,7 +108,17 @@ summary(modelo)
 plot(modelo)
 shapiro.test(modelo$residuals)
 ```
+
+
 # Análisis de condiciones para RLS
+
+Análisis de condiciones:
+
+1. Los datos presentan aproximadamente una relación lineal.
+2. La distribución de los residuos es cercana a la normal (p > 0.05).
+3. La variabilidad de los puntos en torno a la línea de mínimos cuadrados es aproximadamente
+constante.
+4. Las observaciones son independientes entre sí.
 
 ```{r}
 # Se analiza la relación lineal
@@ -105,15 +137,10 @@ plot(modelo, which = 1)
 bptest_result <- bptest(modelo)
 print(bptest_result)
 ```
-Análisis de condiciones:
 
-1. Los datos presentan aproximadamente una relación lineal.
-2. La distribución de los residuos es cercana a la normal (p > 0.05).
-3. La variabilidad de los puntos en torno a la línea de mínimos cuadrados es aproximadamente
-constante.
-4. Las observaciones son independientes entre sí.
 
 Por lo tanto las condiciones para el modelo de regresión lineal se cumplen.
+
 
 ```{r}
 set.seed(1624)
