@@ -112,7 +112,7 @@ shapiro.test(modelo$residuals)
 
 # Análisis de condiciones para RLS
 
-Análisis de condiciones:
+Condiciones:
 
 1. Los datos presentan aproximadamente una relación lineal.
 2. La distribución de los residuos es cercana a la normal (p > 0.05).
@@ -141,45 +141,42 @@ print(bptest_result)
 
 Por lo tanto las condiciones para el modelo de regresión lineal se cumplen.
 
+# Modelo lineal múltiple
 
 ```{r}
-set.seed(1624)
-# Creacion de datos de entrenamiento y de prueba
-n <- nrow(muestraP)
-n_entrenamiento <- floor(0.7 * n)
-muestrasEntrenamiento <- sample.int(n = n,
-                                    size = n_entrenamiento,
-                                    replace = FALSE)
-
-entrenamiento <- muestraP[muestrasEntrenamiento, ]
-prueba <- muestraP[-muestrasEntrenamiento, ]
-
 # Modelo nulo a evaluar
-nulo <- lm(Weight ~ 1, data = entrenamiento)
+nulo <- lm(Weight ~ 1, data = muestraP)
 summary(nulo)
 
 #Modelo completo para evaluar adicion de datos
-completo <- lm(Weight ~ ., data = entrenamiento)
+completo <- lm(Weight ~ ., data = muestraP)
 summary(completo)
 
 modMejorado <- update(nulo, . ~ . + Hip.Girth)
 
 add1(modMejorado, scope = completo)
+```
+Se determina que la mejor variable para agregar al modelo es Wrist.Minimum.Girth (Circunferencia mínima de la muñeca).
 
-summary(modMejorado)
-
+```{r}
 modMejorado <- update(modMejorado, . ~ . + Wrist.Minimum.Girth)
 plot(modMejorado)
 shapiro.test(modMejorado$residuals)
+```
+Se observa como las condiciones se siguen cumpliendo, los residuos mantienen una tendencia normal, se mantienen con valores cercanos al cero horizontal y dentro del rango menor al 0.5 de apalancamiento.
 
 
+```{r}
 add1(modMejorado, scope = completo)
-
+```
+Se determina que la mejor variable a incorporar en el modelo es Chest.Girth (Circunferencia del pecho).
+```{r}
 modMejorado <- update(modMejorado, . ~ . + Chest.Girth)
 plot(modMejorado)
 shapiro.test(modMejorado$residuals)
-
 ```
+Se observa como las condiciones se siguen cumpliendo, los residuos mantienen una tendencia normal, se mantienen con valores cercanos al cero horizontal y dentro del rango menor al 0.5 de apalancamiento.
+
 
 ```{r}
 # Crear conjuntos de entrenamiento y prueba .
@@ -202,7 +199,7 @@ error <- prueba[["Weight"]] - predicciones
 mse_prueba <- mean(error**2)
 cat(" MSE para el conjunto de prueba :", mse_prueba)
 ```
-
+# Evaluación del poder predictivo del modelo
 ```{r}
 # Crear conjuntos de entrenamiento y prueba .
 set.seed(1624)
@@ -212,7 +209,7 @@ muestra <- sample.int ( n = n , size = n_entrenamiento , replace = FALSE )
 entrenamiento <- datos [muestra,]
 prueba <- datos [-muestra,]
 
-# Ajustar modelo usando validaci ón cruzada de 5 pliegues .
+# Ajustar modelo usando validación cruzada de 5 pliegues .
 modelo <- train (Weight ~ Hip.Girth + Wrist.Minimum.Girth + Chest.Girth, data = entrenamiento , method = "lm",
 trControl = trainControl ( method = "cv", number = 5) )
 
@@ -234,4 +231,3 @@ error_prueba <-prueba [["Weight"]] - predicciones_prueba
 mse_prueba <- mean (error_prueba**2)
 cat("MSE para el conjunto de prueba :", mse_prueba )
 ```
-
