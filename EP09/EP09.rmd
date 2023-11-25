@@ -7,6 +7,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(ggpubr)
+library(caret)
+library(lmtest)
+library(car)
 ```
 
 ### Contexto.
@@ -54,28 +60,38 @@ Un estudio recolectó medidas anatómicas de 247 hombres y 260 mujeres (Heinz et
 
 ### Lectura, manipulación y selección de datos
 
+
+**1. Definir la semilla a utilizar, que corresponde a los últimos cuatro dígitos del RUN (sin considerar el dígito verificador) del integrante de menor edad del equipo.**
+
 ```{r}
-library(dplyr)
-library(ggpubr)
-library(caret)
-library(lmtest)
-library(car)
+set.seed(1624) #Se Define la semilla 
+```
+
+
+**2. Seleccionar una muestra de 50 mujeres (si la semilla es un número par) o 50 hombres (si la semilla es impar).**
+
+```{r}
 
 datos <- read.csv2("EP09 Datos.csv")
 head(datos)
 
 mujeres <- filter(datos, Gender == 0)
-
-set.seed(1624) #Se Define la semilla 
 muestra <- mujeres[sample(nrow(mujeres), 50), ]  #Se selecciona una miestra de 50 mujeres
+```
 
+
+**3. Seleccionar de forma aleatoria ocho posibles variables predictoras.**
+
+```{r}
 predictores <- sample(24, 8) #Se seleciona de forma aleatoria ocho posibles variables predictoras.
 predictores
 ```
 
 
-Se realiza un análisis de correlación con respecto a la variable de interés, que en este caso es "Weight" (Peso).El análisis de correlación es una etapa clave en la identificación de variables potencialmente relevantes para el modelo, ya que permite evaluar la relación inicial entre las variables y la variable objetivo, facilitando la toma de decisiones en la selección de predictores para la construcción del modelo de regresión.
 
+**4. Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la variable Peso, justificando bien esta selección.**
+
+Se realiza un análisis de correlación con respecto a la variable de interés, que en este caso es "Weight" (Peso).El análisis de correlación es una etapa clave en la identificación de variables potencialmente relevantes para el modelo, ya que permite evaluar la relación inicial entre las variables y la variable objetivo, facilitando la toma de decisiones en la selección de predictores para la construcción del modelo de regresión.
 
 ```{r}
 correlacion <- cor(muestra)
@@ -88,6 +104,10 @@ indice_max_cor
 
 La elección de la variable "Hip.Girth" se fundamenta en el análisis de correlación previo, donde se evaluaron las relaciones entre las variables predictoras y la variable de respuesta, que es "Weight" (Peso). La variable "Hip.Girth" emergió como la que presenta la mayor correlación positiva con el peso de los individuos.Seleccionar la variable con la correlación más alta tiene implicaciones significativas en la construcción del modelo de regresión. La alta correlación sugiere que existe una relación lineal fuerte entre el grosor de cadera y el peso. Al incorporar esta variable al modelo, se busca capturar y aprovechar esta relación para mejorar la capacidad predictiva del modelo.
 
+
+
+**5. Usando el entorno R, construir un modelo de regresión lineal simple con el predictor seleccionado en el paso anterior.**
+
 Dado la selección de la variable "Hip.Girth" se construye un modelo de regresión lineal simple. 
 
 ```{r}
@@ -97,27 +117,28 @@ muestraP$Hip.Girth <- muestra$Hip.Girth
 head(muestraP)
 
 #MLS
-modelo <- lm(Weight ~ Hip.Girth, data = muestraP)
+modelo <- lm(Weight ~ Hip.Girth, data = muestra)
+print(summary(modelo))
 
+#Graficar el modelo
 p <- ggscatter(muestra, x = "Hip.Girth", y = "Weight", color = "blue", fill = "blue")
 p <- p + geom_smooth(method = lm, se = FALSE, colour = "red")
+print(p)
 
-p
-
-summary(modelo)
+# Crear gráficos para evaluar el modelo.
 plot(modelo)
+
+#Verificar normalidad
 shapiro.test(modelo$residuals)
 ```
 
+### Análisis de condiciones para RLS
 
-# Análisis de condiciones para RLS
-
-Condiciones:
+condiciones:
 
 1. Los datos presentan aproximadamente una relación lineal.
 2. La distribución de los residuos es cercana a la normal (p > 0.05).
-3. La variabilidad de los puntos en torno a la línea de mínimos cuadrados es aproximadamente
-constante.
+3. La variabilidad de los puntos en torno a la línea de mínimos cuadrados es aproximadamente constante.
 4. Las observaciones son independientes entre sí.
 
 ```{r}
@@ -141,52 +162,115 @@ print(bptest_result)
 
 Por lo tanto las condiciones para el modelo de regresión lineal se cumplen.
 
+(Falta comentar mas para justificar mejor las condiciones de regresion lineas simple )
+
+1. Un gráfico en que los residuos se distribuyen aleatoriamente en torno a la línea de valor 0, sugiere que
+es razonable suponer que las variables presentan una relación lineal.
+
+(grafico recta ajustada ) -  donde podemos observar que los datos presentan una relación lineal, aunque algunos
+puntos parecen estar algo alejados de la recta ajustada.
+
+
+
+
+**6. Usando herramientas para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar en el punto 3, para agregar al modelo de regresión lineal simple obtenido en el paso 5.**
+
+
+
 # Modelo lineal múltiple
 
 ```{r}
+set.seed(1624)
+
 # Modelo nulo a evaluar
 nulo <- lm(Weight ~ 1, data = muestraP)
-summary(nulo)
 
 #Modelo completo para evaluar adicion de datos
 completo <- lm(Weight ~ ., data = muestraP)
-summary(completo)
 
 modMejorado <- update(nulo, . ~ . + Hip.Girth)
 
 add1(modMejorado, scope = completo)
 ```
+
 Se determina que la mejor variable para agregar al modelo es Wrist.Minimum.Girth (Circunferencia mínima de la muñeca).
 
 ```{r}
+summary(modMejorado)
+
 modMejorado <- update(modMejorado, . ~ . + Wrist.Minimum.Girth)
 plot(modMejorado)
 shapiro.test(modMejorado$residuals)
 ```
-Se observa como las condiciones se siguen cumpliendo, los residuos mantienen una tendencia normal, se mantienen con valores cercanos al cero horizontal y dentro del rango menor al 0.5 de apalancamiento.
 
+Se observa como las condiciones se siguen cumpliendo, los residuos mantienen una tendencia normal, se mantienen con valores cercanos al cero horizontal y dentro del rango menor al 0.5 de apalancamiento.
 
 ```{r}
 add1(modMejorado, scope = completo)
 ```
+
 Se determina que la mejor variable a incorporar en el modelo es Chest.Girth (Circunferencia del pecho).
+
 ```{r}
 modMejorado <- update(modMejorado, . ~ . + Chest.Girth)
 plot(modMejorado)
 shapiro.test(modMejorado$residuals)
+
 ```
+
 Se observa como las condiciones se siguen cumpliendo, los residuos mantienen una tendencia normal, se mantienen con valores cercanos al cero horizontal y dentro del rango menor al 0.5 de apalancamiento.
+
+
+(Comertar porque no se siguio eligiendo mas varibles :D)
+
+
+**8. Evaluar el poder predictivo del modelo en datos no utilizados para construirlo (o utilizando validación cruzada).**
+
+
+Se evalúa el modelo en regresión simple
 
 
 ```{r}
 # Crear conjuntos de entrenamiento y prueba .
 set.seed(1624)
-n <- nrow(muestraP)
+n <- nrow(muestra)
 n_entrenamiento <- floor(0.7*n)
-muestra <- sample.int(n = n, size = n_entrenamiento, replace = FALSE)
-entrenamiento <- datos [muestra, ]
-prueba <- datos [-muestra, ]
+muestra_entrenamiento <- sample.int(n = n, size = n_entrenamiento, replace = FALSE)
+entrenamiento <- datos [muestra_entrenamiento, ]
+prueba <- datos [-muestra_entrenamiento, ]
 
+# Resumen del modelo de regresión lineal simple
+modelo <- lm(Weight ~ Hip.Girth, data = entrenamiento)
+summary(modelo)
+
+
+mse_entrenamiento <- mean(modelo$residuals**2)
+cat ("MSE para el conjunto de entrenamiento :", mse_entrenamiento, "\n")
+
+predicciones <- predict(modelo, prueba)
+
+error <- prueba[["Weight"]] - predicciones
+mse_prueba <- mean(error**2)
+cat(" MSE para el conjunto de prueba :", mse_prueba)
+```
+El error cuadrático medio en la muestra de entrenamiento es menor que en la de prueba. Esto indicando que el modelo simple es generalizable.
+
+Una estrategia para mejorar esto podría ser la inclusión de más datos en el conjunto de entrenamiento o ajustar el modelo en lotes independientes sin realizar muchas iteraciones para evitar el riesgo de sobreajustar los datos. Esto permitiría una mayor generalización del modelo a nuevas observaciones.
+
+
+Se evalúa el modelo en regresión multiple
+
+```{r}
+# Crear conjuntos de entrenamiento y prueba .
+set.seed(1624)
+n <- nrow(muestra)
+n_entrenamiento <- floor(0.7*n)
+muestra_entrenamiento <- sample.int(n = n, size = n_entrenamiento, replace = FALSE)
+entrenamiento <- datos [muestra_entrenamiento, ]
+prueba <- datos [-muestra_entrenamiento, ]
+
+
+# Resumen del modelo de regresión lineal multiple
 modelo <- lm(Weight ~ Hip.Girth + Wrist.Minimum.Girth + Chest.Girth, data = entrenamiento)
 summary(modelo)
 
@@ -199,15 +283,19 @@ error <- prueba[["Weight"]] - predicciones
 mse_prueba <- mean(error**2)
 cat(" MSE para el conjunto de prueba :", mse_prueba)
 ```
+
+
+
 # Evaluación del poder predictivo del modelo
+
 ```{r}
 # Crear conjuntos de entrenamiento y prueba .
 set.seed(1624)
-n <- nrow(datos)
+n <- nrow(muestraP)
 n_entrenamiento <- floor(0.7*n)
-muestra <- sample.int ( n = n , size = n_entrenamiento , replace = FALSE )
-entrenamiento <- datos [muestra,]
-prueba <- datos [-muestra,]
+muestra_entrenamiento <- sample.int ( n = n , size = n_entrenamiento , replace = FALSE )
+entrenamiento <- datos [muestra_entrenamiento,]
+prueba <- datos [-muestra_entrenamiento,]
 
 # Ajustar modelo usando validación cruzada de 5 pliegues .
 modelo <- train (Weight ~ Hip.Girth + Wrist.Minimum.Girth + Chest.Girth, data = entrenamiento , method = "lm",
@@ -231,3 +319,4 @@ error_prueba <-prueba [["Weight"]] - predicciones_prueba
 mse_prueba <- mean (error_prueba**2)
 cat("MSE para el conjunto de prueba :", mse_prueba )
 ```
+
