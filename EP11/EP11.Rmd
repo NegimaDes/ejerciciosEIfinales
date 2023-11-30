@@ -1,0 +1,40 @@
+---
+title: "EP10+1"
+author: "Benjamin Canales"
+date: "2023-11-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(leaps)
+library(caret)
+```
+
+
+```{r}
+datos <- read.csv2("EP09 Datos.csv")
+
+datos$IMC <- NULL
+datos[["IMC"]] <- (datos$Weight / (datos$Height/100)^2)
+
+datos$EN <- NULL
+datos[["EN"]] <- ifelse(datos$IMC >= 25, "sobrepeso", "no sobrepeso")
+
+set.seed(12345)
+
+con <- filter(datos, EN == "sobrepeso")
+sin <- filter(datos, EN == "no sobrepeso")
+
+muestraA <- con[sample(nrow(con), 50), ]
+muestraB <- sin[sample(nrow(sin), 50), ]
+muestra <- rbind(muestraA, muestraB)
+
+
+reg_results <- regsubsets(Weight ~ ., data = muestra, nvmax = 8)
+
+```
