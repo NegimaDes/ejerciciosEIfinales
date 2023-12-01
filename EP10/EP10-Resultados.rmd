@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(dplyr)
 library(ggplot2)
+library(car)
 ```
 
 
@@ -42,8 +43,10 @@ entrenamientoB <- sinM[sample(nrow(sinM), 30), ]
 pruebaB <- sinM[!rownames(sinM) %in% rownames(entrenamientoB), ]
 
 entrenamiento <- rbind(entrenamientoA, entrenamientoB)
+entrenamiento <- entrenamiento[sample(nrow(entrenamiento)), ]
 
 prueba <- rbind(pruebaA, pruebaB)
+prueba <- prueba[sample(nrow(prueba)), ]
 
 predictores <- c(19, 22, 5, 6, 10, 11, 3, 21)
 
@@ -70,8 +73,24 @@ nulo <- glm(EN ~ 1, family = binomial(link = "logit"), data = entrenamiento2)
 completo <- glm(EN ~ ., family = binomial(link="logit"), data = entrenamiento2)
 summary(completo)
 
+# modelo con predictores seleccionados por p-value
+
 mejorado <- step(completo, scope = list(lower = modelo), direction = "backward", trace = 0)
-summary(mejorado2)
+summary(mejorado)
+
+# Multicolinealidad
+vifs <- vif(mejorado)
+vifs
+mean(vifs)
+
+########________________________
+anova(mejorado, test = "LRT")
+########________________________
+
+
+# Independencia de los residuos
+
+durbinWatsonTest(mejorado, max.lag = 5)
 
 
 
