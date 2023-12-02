@@ -1,0 +1,216 @@
+---
+title: "EP10-respuesta"
+author: "Equipo 6"
+date: "2023-11-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(car)
+library(pROC)
+```
+
+#### **Contextualizacion**
+Para este ejercicio usaremos los datos de medidas anatómicas recolectados por Heinz et al. (2003) que ya conocimos en el ejercicio práctico anterior (disponibles en el archivo "EP09 Datos.csv"). Como en este case se requiere de una variable dicotómica, vamos a realizar lo siguiente:
+
+#### **Creación de variable dicotómica**
+
+**1. El equipo crea la variable IMC (índice de masa corporal) como el peso de una persona (en kilogramos) dividida por el cuadrado de su estatura (en metros).**
+```{r}
+# Preparación de datos
+datos <- read.csv2("EP09 Datos.csv")
+
+# Se crea la variable IMC
+datos$IMC <- NULL
+datos[["IMC"]] <- (datos$Weight / (datos$Height/100)^2)
+```
+
+**2. Si bien esta variable se usa para clasificar a las personas en varias clases de estado nutricional (bajo peso, normal, sobrepeso, obesidad, obesidad mórbida), para efectos de este ejercicio, usaremos dos clases: sobrepeso (IMC ≥ 25,0) y no sobrepeso (IMC < 25,0).**
+**3. El equipo crea la variable dicotómica EN (estado nutricional) de acuerdo al valor de IMC de cada persona.**
+
+```{r}
+# Se crea la variable EN
+datos$EN <- NULL
+datos[["EN"]] <- factor(ifelse(datos$IMC >= 25, "sobrepeso", "no sobrepeso"))
+
+```
+
+#### **Construcción del modelo de regresión logística para predecir la variable EN**
+
+**1. Se define la semilla a utilizar, que corresponde a los últimos cuatro dígitos del RUN del integrante de mayor edad del equipo.**
+
+```{r}
+# Se define la semilla a utilizar
+set.seed(2043)
+```
+
+**2.1 Se selecciona una muestra de 90 hombres (la semilla es impar) y se asegura que la mitad tenga estado nutricional “sobrepeso” y la otra mitad “no sobrepeso” en cada caso.**
+
+```{r}
+# Filtro para muestras
+hombres <- filter(datos, Gender == 1)
+con <- filter(hombres, EN == "sobrepeso")
+sin <- filter(hombres, EN == "no sobrepeso")
+
+# Obtención de muestras
+muestraA <- con[sample(nrow(con), 45), ]
+muestraB <- sin[sample(nrow(sin), 45), ]
+muestra <- rbind(muestraA, muestraB)
+```
+
+**2.2 Dividir esta muestra en dos conjuntos: los datos de 60 personas (30 con EN “sobrepeso”) para utilizar en la construcción de los modelos y 30 personas (15 con EN “sobrepeso”) para poder evaluarlos.**
+
+```{r}
+# Se divide la muestra en los conjuntos solicitados
+conM <- filter(muestra, EN == "sobrepeso")
+sinM <- filter(muestra, EN == "no sobrepeso")
+
+entrenamientoA <- conM[sample(nrow(conM), 30), ]
+pruebaA <- conM[!rownames(conM) %in% rownames(entrenamientoA), ]
+entrenamientoB <- sinM[sample(nrow(sinM), 30), ]
+pruebaB <- sinM[!rownames(sinM) %in% rownames(entrenamientoB), ]
+
+entrenamiento <- rbind(conM[sample(nrow(conM), 30), ], sinM[sample(nrow(sinM), 30), ])
+entrenamiento <- entrenamiento[sample(nrow(entrenamiento)), ]
+
+prueba <- rbind(pruebaA, pruebaB)
+prueba <- prueba[sample(nrow(prueba)), ]
+```
+
+**3. Recordar las ocho posibles variables predictoras seleccionadas de forma aleatoria en el ejercicio anterior.**
+
+Las variables del ejercicio anterior corresponden a:
+
+3. Bitrochanteric.diameter
+5. Chest.diameter
+6. Elbows.diameter
+10.  Shoulder.Girth
+11.  Chest.Girth
+19. Calf.Maximum.Girth
+21. Wrist.Minimum.Girth
+22. Age
+
+```{r}
+# Variables predictoras
+predictores <- c(19, 22, 5, 6, 10, 11, 3, 21)
+```
+
+**4. Seleccionar, de las otras variables, una que el equipo considere que podría ser útil para predecir la clase EN, justificando bien esta selección.**
+
+Se realiza una evaluación por evaluación de los gráficos de caja de las variables no seleccionadas
+
+```{r}
+variables_seleccionadas <- colnames(muestra[-predictores])[1:17]
+
+# Crear un gráfico de cajas para cada variable que no pertenece a los predictores a utilizar
+for (var in variables_seleccionadas) {
+  p <- ggplot(muestra, aes_string(x = "EN", y = var)) +
+    geom_boxplot() +
+    labs(title = paste("Boxplot of", var, "by EN"))
+  print(p)
+}
+```
+
+
+En los gráficos de caja, se elige aquel que exhiba la mayor separación entre las dos cajas del mismo gráfico, ya que esta mayor distancia refleja un efecto más pronunciado. Para este caso se hace selección de la variable Weight (peso) para incluir en el modelo a generar.
+
+
+**5. Usando el entorno R y paquetes estándares, construir un modelo de regresión logística con el predictor seleccionado en el paso anterior y utilizando de la muestra obtenida.**
+
+```{r}
+# Se generan la muestra a utilizar
+entrenamiento2 <- entrenamiento[predictores]
+entrenamiento2$EN <- entrenamiento$EN
+entrenamiento2$Weight <- entrenamiento$Weight
+
+# Se construye el modelo logístico
+modelo <- glm(EN ~ Weight, family = binomial(link = "logit"), data = entrenamiento2)
+
+# Se muestra información del modelo creado
+summary(modelo)
+```
+
+**6. Usando herramientas estándares para la exploración de modelos del entorno R, buscar entre dos y cinco predictores de entre las variables seleccionadas al azar, recordadas en el punto 3, para agregar al modelo obtenido en el paso 5.**
+
+```{r}
+# Se construye el modelo completo
+completo <- glm(EN ~ ., family = binomial(link="logit"), data = entrenamiento2)
+
+# Se muestra información del modelo creado
+summary(completo)
+
+# Modelo con predictores seleccionados por p-value
+# Se ajusta el modelo con eliminación hacia atrás
+mejorado <- step(completo, scope = list(lower = modelo), direction = "backward", trace = 0)
+summary(mejorado)
+```
+
+**7. Evaluar la confiabilidad de los modelos (i.e. que tengan un buen nivel de ajuste y son generalizables) y “arreglarlos” en caso de que tengan algún problema.**
+
+```{r}
+# Condición de no convergencia
+# Multicolinealidad
+vifs <- vif(mejorado)
+vifs
+mean(vifs)
+
+# Independencia de los residuos
+
+durbinWatsonTest(mejorado, max.lag = 1)
+```
+
+Resultados de la prueba de Durbin-Watson para la independencia de los residuos entrega un p-value superior a 0.05, entonces existe independencia de los residuos del modelo.
+
+```{r}
+
+# Evaluación en conjunto de entrenamiento
+# Preparación de datos
+umbral <- 0.5
+probs_e <- predict(mejorado, entrenamiento, type = "response")
+preds_e <- sapply(probs_e, function(p) ifelse(p >= umbral, "sobrepeso", "no sobrepeso"))
+preds_e <- factor(preds_e, levels = levels(datos[["EN"]]))
+matriz_confusion <- table(Predicciones = preds_e, Real = entrenamiento$EN)
+
+# Cálculos
+sens_e <- matriz_confusion[2, 2] / sum(matriz_confusion[2, ])
+espe_e <- matriz_confusion[1, 1] / sum(matriz_confusion[1, ])
+ROC_e <- roc(entrenamiento[["EN"]], probs_e)
+
+# Resultados
+plot(ROC_e)
+sens_e
+espe_e
+```
+
+ROC se acerca a la esquina superior izquierda y valores de sensibilidad y especificidad altos, por lo tanto, baja probabilidad de error tipo 1 y 2 y un alto poder para el modelo en el conjunto de entrenamiento
+
+**8. Usando código estándar, evaluar el poder predictivo de los modelos con los datos de las 30 personas que no se incluyeron en su construcción en términos de sensibilidad y especificidad.**
+
+Se realiza entonces la evaluación del modelo en el conjunto de en el conjunto llamado prueba
+
+```{r}
+# Evaluación en el conjunto de pruebas
+
+# Preparación de datos
+probs_p <- predict(mejorado, prueba, type = "response")
+preds_p <- sapply(probs_p, function(p) ifelse(p >= umbral, "sobrepeso", "no sobrepeso"))
+preds_p <- factor(preds_p, levels = levels(datos[["EN"]]))
+matriz_confusion <- table(Predicciones = preds_p, Real = prueba$EN)
+
+# Cálculos
+sens_p <- matriz_confusion[2, 2] / sum(matriz_confusion[2, ])
+espe_p <- matriz_confusion[1, 1] / sum(matriz_confusion[1, ])
+ROC_p <- roc(prueba[["EN"]], probs_p)
+
+# Resultados
+plot(ROC_p)
+sens_p
+espe_p
+```
+Valores bastante altos para el conjunto de pruebas y ROC acercado a la esquina superior izquierda, entonces el modelo puede ser utilizado para predecir la variable EN sobre si tiene o no sobrepeso.
