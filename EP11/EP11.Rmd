@@ -25,7 +25,7 @@ datos[["IMC"]] <- (datos$Weight / (datos$Height/100)^2)
 datos$EN <- NULL
 datos[["EN"]] <- ifelse(datos$IMC >= 25, "sobrepeso", "no sobrepeso")
 
-set.seed(12345)
+set.seed(20072)
 
 con <- filter(datos, EN == "sobrepeso")
 sin <- filter(datos, EN == "no sobrepeso")
@@ -34,7 +34,54 @@ muestraA <- con[sample(nrow(con), 50), ]
 muestraB <- sin[sample(nrow(sin), 50), ]
 muestra <- rbind(muestraA, muestraB)
 
+# Variables a obviar (Weight, IMC, EN)
+variables <- c(23, 26, 27)
 
-reg_results <- regsubsets(Weight ~ ., data = muestra, nvmax = 8)
+variables_seleccionadas <- colnames(muestra)[-variables]
+
+formula_reg <- as.formula(paste("Weight ~", paste(variables_seleccionadas, collapse = " + ")))
+
+# Busqueda exhaustiva en donde se analizan 8 subconjuntos
+reg_results <- regsubsets(formula_reg, data = muestra, nvmax = 8, nbest = 1)
+summary(reg_results)$which
+
+# Se grafican los modelos en donde cada valor horizontal representa uno, cada cuadro de color implica el uso de la variable en el modelo, por el principio de parsimonia se busca utilizar el que utilice menos variables, en ete caso el que posee BIC de -370 con las variables 
+# Chest.Girth, Waist.Girth,Thigh.Girth, Forearm.Girth, Knee.Girth, Calf.Maximum.Girth y Height
+plot(reg_results)
+
+
+# Weight ~ Biacromial.diameter + Biiliac.diameter + Bitrochanteric.diameter + 
+#     Chest.depth + Chest.diameter + Elbows.diameter + Wrists.diameter + 
+#     Knees.diameter + Ankles.diameter + Shoulder.Girth + Chest.Girth + 
+#     Waist.Girth + Navel.Girth + Hip.Girth + Thigh.Girth + Bicep.Girth + 
+#     Forearm.Girth + Knee.Girth + Calf.Maximum.Girth + Ankle.Minimum.Girth + 
+#     Wrist.Minimum.Girth + Age + Height + Gender
+
+
+
+# AMIGO TECNOLOGICO A TENER EN CUENTA
+# Instalar y cargar el paquete 'caret' si aún no está instalado
+install.packages("caret")
+library(caret)
+
+# Seleccionar las variables basadas en el análisis de 'regsubsets'
+variables_modelo <- c("Chest.Girth", "Waist.Girth", "Thigh.Girth", 
+                      "Forearm.Girth", "Knee.Girth", "Calf.Maximum.Girth", "Height")
+
+# Crear la fórmula para el modelo de regresión lineal
+formula_modelo <- as.formula(paste("Weight ~", paste(variables_modelo, collapse = " + ")))
+
+# Construir el modelo de regresión lineal múltiple
+modelo_final <- lm(formula_modelo, data = muestra)
+
+# Configuración para bootstrapping
+set.seed(20072)  # Establecer la semilla para reproducibilidad
+train_control <- trainControl(method = "boot", number = 1000)  # 1000 iteraciones de bootstrap
+
+# Evaluar el modelo con bootstrapping
+modelo_bootstrapped <- train(formula_modelo, data = muestra, method = "lm", trControl = train_control)
+
+# Ver los resultados
+print(modelo_bootstrapped)
 
 ```
