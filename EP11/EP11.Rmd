@@ -45,7 +45,7 @@ formula_reg <- as.formula(paste("Weight ~", paste(variables_seleccionadas, colla
 reg_results <- regsubsets(formula_reg, data = muestra, nvmax = 8, nbest = 1)
 summary(reg_results)$which
 
-# Se grafican los modelos en donde cada valor horizontal representa uno, cada cuadro de color implica el uso de la variable en el modelo, por el principio de parsimonia se busca utilizar el que utilice menos variables, en ete caso el que posee BIC de -370 con las variables 
+# Se grafican los modelos en donde cada valor horizontal representa uno, cada cuadro de color implica el uso de la variable en el modelo, por el principio de parsimonia se busca utilizar el que utilice menos variables, en este caso el que posee BIC de -370 con las variables 
 # Chest.Girth, Waist.Girth,Thigh.Girth, Forearm.Girth, Knee.Girth, Calf.Maximum.Girth y Height
 plot(reg_results)
 
