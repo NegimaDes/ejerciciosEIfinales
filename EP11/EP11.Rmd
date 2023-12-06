@@ -82,6 +82,6 @@ train_control <- trainControl(method = "boot", number = 1000)  # 1000 iteracione
 modelo_bootstrapped <- train(formula_modelo, data = muestra, method = "lm", trControl = train_control)
 
 # Ver los resultados
-print(modelo_bootstrapped)
+summary(modelo_bootstrapped)
 
 ```
