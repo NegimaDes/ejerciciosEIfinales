@@ -1,0 +1,164 @@
+---
+title: "EP11-respuesta"
+author: "equipo-6"
+date: "2023-11-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(leaps)
+library(caret)
+library(pROC)
+```
+
+#### **Contextualizacion**
+Para este ejercicio usaremos los datos de medidas anatómicas recolectados por Heinz et al. (2003) que ya conocimos en el 
+ejercicio práctico anterior (disponibles en el archivo "EP09 Datos.csv").
+
+```{r}
+datos <- read.csv2("EP09 Datos.csv")
+
+datos$IMC <- NULL
+datos[["IMC"]] <- (datos$Weight / (datos$Height/100)^2)
+
+datos$EN <- NULL
+datos[["EN"]] <- ifelse(datos$IMC >= 25, "sobrepeso", "no sobrepeso")
+datos[["EN"]] <- factor(datos[["EN"]])
+```
+
+**1. Definir la semilla a utilizar, que corresponde a los primeros cinco dígitos del RUN del integrante de mayor edad del equipo.**
+
+```{r}
+set.seed(20072)
+```
+
+**2. Seleccionar una muestra de 100 personas, asegurando que la mitad tenga estado nutricional “sobrepeso” y la otra mitad “no sobrepeso”.**
+
+```{r}
+con <- filter(datos, EN == "sobrepeso")
+sin <- filter(datos, EN == "no sobrepeso")
+
+muestraA <- con[sample(nrow(con), 50), ]
+muestraB <- sin[sample(nrow(sin), 50), ]
+muestra <- rbind(muestraA, muestraB)
+```
+
+**3. Usando las herramientas del paquete leaps, realizar una búsqueda exhaustiva para seleccionar entre dos y ocho predictores que ayuden a estimar 
+la variable Peso (Weight), obviamente sin considerar las nuevas variables IMC ni EN, y luego utilizar las funciones del paquete caret para construir 
+un modelo de regresión lineal múltiple con los predictores escogidos y evaluarlo usando bootstrapping.**
+
+```{r}
+# Variables a obviar (Weight, IMC, EN)
+variables <- c(23, 26, 27)
+
+variables_seleccionadas <- colnames(muestra)[-variables]
+
+formula_reg <- as.formula(paste("Weight ~", paste(variables_seleccionadas, collapse = " + ")))
+
+# Busqueda exhaustiva en donde se analizan 8 subconjuntos
+reg_results <- regsubsets(formula_reg, data = muestra, nvmax = 8, nbest = 1)
+summary(reg_results)$which
+
+# Se grafican los modelos en donde cada valor horizontal representa uno, cada cuadro de color implica el uso de la variable en el modelo, 
+# por el principio de parsimonia se busca utilizar el que utilice menos variables, en este caso el que posee BIC de -370 con las variables:
+# Chest.Girth, Waist.Girth,Thigh.Girth, Forearm.Girth, Knee.Girth, Calf.Maximum.Girth y Height
+plot(reg_results)
+
+# Se seleccionan las variables basadas en el análisis anterior
+variables_modelo <- c("Chest.Girth", "Waist.Girth", "Thigh.Girth", 
+                      "Forearm.Girth", "Knee.Girth", "Calf.Maximum.Girth", "Height")
+
+# Se crea la fórmula para el modelo
+formula_modelo <- as.formula(paste("Weight ~", paste(variables_modelo, collapse = " + ")))
+
+# Se construye el modelo
+modelo_final <- lm(formula_modelo, data = muestra)
+
+# Se realiza la evaluación con bootstrapping
+set.seed(20072) 
+train_control <- trainControl(method = "boot", number = 1000)  # 1000 iteraciones de bootstrap
+
+modelo_bootstrapped <- train(formula_modelo, data = muestra, method = "lm", trControl = train_control)
+
+summary(modelo_bootstrapped)
+```
+
+**4. Haciendo un poco de investigación sobre el paquete caret, en particular cómo hacer Recursive Feature Elimination (RFE), construir un modelo 
+de regresión lineal múltiple para predecir la variable IMC que incluya entre 10 y 20 predictores, seleccionando el conjunto de variables que maximice 
+R2 y que use cinco repeticiones de validación cruzada de cinco pliegues para evitar el sobreajuste (obviamente no se debe considerar las variables Peso, 
+Estatura ni estado nutricional –Weight, Height, EN respectivamente).**
+
+```{r}
+set.seed(20072)
+# Se quitan las variables indicadas
+variables <- c(23, 24, 27)
+
+muestra_reducida <- muestra[-variables]
+
+# Se genera el modelo RFE
+control <- rfeControl(functions = lmFuncs, method = "repeatedcv", number = 5, repeats = 5)
+
+modelo_rfe <- rfe(muestra_reducida[, -24], muestra_reducida[, 24], sizes = 10:20, rfeControl = control)
+
+# Se selecciona los mejores predictores
+predictors(modelo_rfe)
+
+# Se ven los resultados del modelo RFE
+modelo_rfe$fit
+plot(modelo_rfe, type = c("g", "o"))
+
+# Se crea la formula para el emodelo de regresión lineal múltiple
+formula_rge <- as.formula(paste("IMC ~", paste(predictors(modelo_rfe), collapse = " + ")))
+modelo_final <- lm(formula_rge, data = muestra)
+summary(modelo_final)
+```
+
+**5. Usando RFE, construir un modelo de regresión logística múltiple para la variable EN que incluya el conjunto, de entre dos y seis, 
+predictores que entregue la mejor curva ROC y que utilice validación cruzada dejando uno fuera para evitar el sobreajuste (obviamente no 
+se debe considerar las variables Peso, Estatura –Weight y Height respectivamente– ni IMC).**
+
+```{r}
+# Se quitan las variables indicadas
+variables <- c(23, 24, 26)
+
+muestra_reducida <- muestra[-variables]
+
+set.seed(20072)
+# Se genera el modelo RFE
+funcion_usar <- lrFuncs
+funcion_usar$summary <- twoClassSummary
+
+control <- rfeControl(functions = funcion_usar, method = "cv", number = 5)
+
+modelo_rfe <- rfe(muestra_reducida[, 1:23], muestra_reducida[, 24], sizes = 2:6, rfeControl = control, metric = "ROC")
+
+predictors(modelo_rfe)
+
+summary(modelo_rfe$fit)
+
+funcion_logistica <- as.formula(paste("EN ~" , paste(predictors(modelo_rfe), collapse = " + ")))
+
+modelo_final_log <- glm(funcion_logistica, data = muestra, family = binomial(link="logit"))
+
+summary(modelo_final_log)
+
+probs_e <- predict(modelo_final_log, muestra, type = "response")
+
+roc_curva <- roc(muestra$EN , probs_e)
+
+auc <- auc(roc_curva)
+auc
+
+# Visualizar el ROC
+
+plot(roc_curva)
+
+```
+
+Con respecto a la Confiabilidad de este estos modelos , dado el AUC cercano a 1 , este indica que tiene un mejor rendimiento en terminos de capacidad de discrimiancion entre clases.
+Tambien con respecto al poder predictico del modelo , al alto AUC este suguiere que el modelo tiene una buena capacidad para distinguir entre las instancias de las clases positiva y negativa.
